@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			canvas{
+				border:1px solid black;
+			}
+		</style>
+		<script src='player.js'></script>
+		<script src='banana.js'></script>
+		<script src='barrel.js'></script>
+		<script>
+			function keyUpHandler(e){
+				switch(e.keyCode){
+					case 37: keys.left=false; break;
+					case 39: keys.right=false; break;
+				}
+			
+			}
+			function keyDownHandler(e){
+				switch(e.keyCode){
+					case 37: keys.left=true; break;
+					case 39: keys.right=true; break;
+				}
+			}
+			//game vars
+			var canvas, ctx;
+			var timing;
+			
+			
+			//background vars
+			var bg=new Image();
+			bg.src='bg.png';
+			
+			var playerImg = new Image();
+			playerImg.src = 'player2.png';
+			var playerGame;
+			
+			var bananaImg = new Image();
+			bananaImg.src = 'banana.png';
+			var bananas;
+			
+			var barrelImg = new Image();
+			barrelImg.src = 'barrel.png';
+			var barrels;
+			
+			//key variables
+			var keys;
+			
+			var score, lives, level;
+			
+			var hitSound;
+			var bgMusic;
+			var eatSound;
+			
+			function initialize(){
+				//game vars
+				canvas=document.getElementById('game');
+				ctx=canvas.getContext('2d');
+				timing=0;
+				
+				score = 0;
+				lives = 3;
+				level = 1;
+				
+				bananas = [];
+				barrels = [];
+				
+				//key vars
+				keys={
+					right:false,
+					left:false
+				};
+				
+				player = new Player(canvas.width/4, 250, 3, playerImg, 16, 24, 6);
+				
+				hitSound=document.getElementById("hitSound");
+				eatSound=document.getElementById("eatSound");
+				bgMusic=document.getElementById("bgMusic");
+				bgMusic.play();
+				
+				document.addEventListener("keydown", keyDownHandler);
+				document.addEventListener("keyup", keyUpHandler);
+				
+				update();
+			}
+			
+			function update(){
+				//game vars
+				timing++;
+				
+				if(timing%600==0) {
+					level++;
+					console.log("level : " + level);
+				}
+				
+				player.move(canvas, keys, timing);
+				
+				//bananas
+				for(var x = 0; x < bananas.length; x++){
+					bananas[x].move();	
+					if(bananas[x].y>canvas.height){
+						bananas.splice(x, 1);
+					}
+					if(player.x<=bananas[x].x+bananas[x].img.width &&
+					player.x+player.frameW>=bananas[x].x &&
+					player.y<=bananas[x].y+bananas[x].img.height &&
+					player.y+player.frameH>=bananas[x].y){
+						bananas.splice(x, 1);
+						score++;
+						eatSound.play();
+					}
+				}
+				if(timing%60==0){
+					bananas.push(new Banana (bananaImg, parseInt(Math.random()*(canvas.width-2*bananaImg.width))));
+				}
+				//barrels
+				for(var x = 0; x < barrels.length; x++){
+					barrels[x].move();	
+					if(barrels[x].y>canvas.height){
+						barrels.splice(x, 1);
+					}
+					if(player.x<=barrels[x].x+barrels[x].img.width &&
+					player.x+player.frameW>=barrels[x].x &&
+					player.y<=barrels[x].y+barrels[x].img.height &&
+					player.y+player.frameH>=barrels[x].y){
+						barrels.splice(x, 1);
+						lives--;
+						hitSound.play();
+					}
+				}
+				if(timing%(60/level)==0){
+					//console.log("barrel : " + timing);
+					barrels.push(new Barrel (barrelImg, parseInt(Math.random()*(canvas.width-2*barrelImg.width)), parseInt(Math.random()*2+.5)));
+				}
+				
+				draw();
+				requestAnimationFrame(update);
+			}
+			function draw(){
+				//background
+				ctx.clearRect(0,0,canvas.width, canvas.height);
+				ctx.drawImage(bg,0,0, canvas.width, canvas.height);
+				
+				player.draw(ctx);
+				
+				bananas.forEach(function(banana){
+					banana.draw(ctx);
+				});
+				barrels.forEach(function(barrel){
+					barrel.draw(ctx);
+				});
+				//lives
+				ctx.beginPath();
+					ctx.font="40px Impact";
+					ctx.fillStyle="yellow";
+					ctx.fillText(lives, 350, 55);
+				ctx.closePath();
+				//score
+				ctx.beginPath();
+					ctx.font="40px Impact";
+					ctx.fillStyle="white";
+					ctx.fillText(score, 40, 60);
+				ctx.closePath();
+				if(lives==0){
+					ctx.beginPath();
+						ctx.font="50px Georgia";
+						ctx.fillStyle="red";
+						ctx.fillText("GAME OVER", 50, 100);
+					ctx.closePath();
+					ctx.beginPath();
+						ctx.font="25px Georgia";
+						ctx.fillStyle="red";
+						ctx.fillText("Your final score is : " + score, 80, 150);
+					ctx.closePath();	
+					ctx = null;
+				}
+			}
+
+		</script>
+	</head>
+	<body>
+		<canvas id='game' width='400px' height='300px'></canvas>
+		<audio src='eat.mp3' type='audio/mpeg' id='eatSound' preload='auto' controls='none' style='display:none'></audio>
+		<audio src='hit.mp3' type='audio/mpeg' id='hitSound' preload='auto' controls='none' style='display:none'></audio>
+		<audio src='bg.mp3' type='audio/mpeg' id='bgMusic' preload='auto' controls='none' style='display:none' autoplay='true' loop='true'></audio>
+		<button id='start' onclick='initialize()'>Start Game</button>
+	</body>
+</html>
